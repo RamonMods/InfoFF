@@ -22,6 +22,13 @@ const REGIOES = {
 
 let intervalo = null;
 let inicioConsulta = 0;
+let NOMES = {};
+
+/* --- nome dos itens resolvidos pela API. --- */
+function nomeItem(id) {
+  const dado = NOMES[String(id)];
+  return dado ? dado.nome + " · " + dado.raridade : "";
+}
 
 /* --- endereço da API: no Render é o próprio site; no Pages vem do meta. --- */
 const metaApi = document.querySelector('meta[name="infoff-api"]');
@@ -73,6 +80,10 @@ function campo(rotulo, valor, opcoes = {}) {
   const classes = ["campo-valor"];
   if (opcoes.num) classes.push("num");
   if (vazio) classes.push("vazio");
+  if (opcoes.itemId && !opcoes.miudo) {
+    const nome = nomeItem(opcoes.itemId);
+    if (nome) opcoes.miudo = nome;
+  }
 
   const conteudo = vazio
     ? escapar(opcoes.vazio || "—")
@@ -100,6 +111,20 @@ function tags(lista) {
   return `<div class="tags">${lista.map((t) => `<span class="tag">${escapar(t)}</span>`).join("")}</div>`;
 }
 
+/* --- lista de ids devolvidos pelo servidor, sem separador de milhar. --- */
+function ids(lista) {
+  const itens = (lista || []).filter((v) => v !== null && v !== undefined && v !== "");
+  if (!itens.length) return '<div class="id-lista vazia">—</div>';
+  return `<div class="id-lista">${itens.map((v) => {
+    const nome = nomeItem(v);
+    return `<code title="${escapar(nome || "ID do servidor")}">${escapar(codigo(v))}${nome ? " · " + escapar(nome) : ""}</code>`;
+  }).join("")}</div>`;
+}
+
+function listaRotulada(rotulo, conteudo) {
+  return `<div class="linha-lista"><span>${escapar(rotulo)}</span>${conteudo}</div>`;
+}
+
 function montarSecoes(jogador) {
   const ranks = jogador.ranks || {};
   const br = ranks.br || {};
@@ -109,7 +134,11 @@ function montarSecoes(jogador) {
   const social = jogador.social || {};
   const honra = jogador.honra || {};
   const aparencia = jogador.aparencia || {};
+  const conta = jogador.conta || {};
+  const campeonato = jogador.campeonato || {};
   const passes = jogador.passes || [];
+  const noticias = jogador.noticias || [];
+  const ocupacoes = jogador.ocupacoes || [];
 
   const blocos = [];
 
@@ -119,20 +148,36 @@ function montarSecoes(jogador) {
     campo("Likes", numero(jogador.likes), { num: true }),
     campo("Tipo de conta", jogador.tipo_conta),
     campo("Conta criada em", data(jogador.conta_criada_em), { vazio: "Não informado" }),
+    campo("Idade da conta", jogador.idade_conta_dias ? numero(jogador.idade_conta_dias) + " dias" : null),
     campo("Último login", data(jogador.ultimo_login_em), { vazio: "Não informado" }),
+    campo("Dias sem jogar", jogador.dias_sem_login === null || jogador.dias_sem_login === undefined
+      ? null : numero(jogador.dias_sem_login) + " dias"),
     campo("Cliente", jogador.versao_cliente),
     campo("Veterano", jogador.veterano),
     campo("Passe Elite", jogador.passe_elite ? "Sim" : "Não"),
     campo("Temporada", numero(jogador.temporada_id), { num: true }),
+    campo("Pré-veterano", conta.pre_veterano),
+    campo("Conta excluída", conta.excluida ? "Sim" : "Não"),
+    campo("Conta vinculada", conta.external_nome || null, { miudo: conta.external_tipo ? "tipo " + codigo(conta.external_tipo) : "" }),
+    campo("UID externo", codigo(conta.external_uid), { num: true }),
+    campo("Retorno em", data(conta.retorno_em), { vazio: null }),
   ])));
 
   blocos.push(secao("02", "Ranks", grade([
     campo("Pontos BR", numero(br.pontos), { num: true, miudo: "recorde " + numero(br.pontos_recorde) + " pts" }),
     campo("Código BR", codigo(br.rank), { num: true, miudo: "código do servidor" }),
+    campo("Recorde BR", codigo(br.recorde), { num: true }),
+    campo("Posição de pico BR", numero(br.posicao_pico), { num: true }),
+    campo("Rank periódico BR", codigo(br.periodico_rank), { num: true, miudo: numero(br.periodico_pontos) + " pts" }),
+    campo("Rank BR visível", br.visivel ? "Sim" : "Não"),
     campo("Pontos CS", numero(cs.pontos), { num: true, miudo: "recorde " + numero(cs.pontos_recorde) + " pts" }),
     campo("Código CS", codigo(cs.rank), { num: true, miudo: "código do servidor" }),
+    campo("Recorde CS", codigo(cs.recorde), { num: true }),
+    campo("Posição de pico CS", numero(cs.posicao_pico), { num: true }),
+    campo("Rank CS visível", cs.visivel ? "Sim" : "Não"),
     campo("Rank no perfil", ranks.mostrado_no_perfil || "—"),
-    campo("Rank CS", cs.bloqueado_cs ? "Bloqueado" : "Liberado"),
+    campo("Rank CS", ranks.bloqueado_cs ? "Bloqueado" : "Liberado"),
+    campo("Posição no ranking", numero(ranks.posicao_leaderboard), { num: true }),
   ])));
 
   blocos.push(secao("03", "Guilda", grade([
@@ -143,22 +188,35 @@ function montarSecoes(jogador) {
     campo("Honra", numero(guilda.honra), { num: true }),
     campo("Líder", guilda.tem_guilda ? guilda.lider : "—", { largo: true }),
     campo("UID do líder", codigo(guilda.lider_uid), { num: true }),
+    campo("Nível do líder", numero(guilda.lider_nivel), { num: true }),
+    campo("Badge da guilda", codigo(guilda.badge_id), { num: true }),
+    campo("Moldura da guilda", codigo(guilda.frame_id), { num: true }),
+    campo("Badge personalizado", guilda.badge_custom || null, { miudo: guilda.usa_badge_custom ? "em uso" : "" }),
+    campo("Estado", guilda.estado),
   ])));
 
   blocos.push(secao("04", "Pet", grade([
-    campo("Nome", pet.tem_pet ? pet.nome : "Sem pet", { vazio: "Sem pet" }),
-    campo("ID", codigo(pet.id), { num: true }),
+    campo("Nome", pet.tem_pet ? pet.nome : "Sem pet", { vazio: "Sem pet", itemId: pet.id }),
+    campo("ID", codigo(pet.id), { num: true, itemId: pet.id }),
     campo("Nível", numero(pet.nivel), { num: true }),
     campo("Experiência", numero(pet.exp), { num: true }),
-    campo("Skin", codigo(pet.skin_id), { num: true }),
-    campo("Habilidade", codigo(pet.skill_id), { num: true }),
-  ])));
+    campo("Skin", codigo(pet.skin_id), { num: true, itemId: pet.skin_id }),
+    campo("Habilidade ativa", codigo(pet.skill_id), { num: true, itemId: pet.skill_id }),
+    campo("Selecionado", pet.selecionado ? "Sim" : "Não"),
+    campo("Marcado como favorito", pet.marcado_estrela ? "Sim" : "Não"),
+    campo("Fim do empréstimo", data(pet.fim_em), { vazio: null }),
+  ]) + (pet.habilidades && pet.habilidades.length
+    ? listaRotulada("Habilidades do pet", `<div class="id-lista">${pet.habilidades.map((h) =>
+        `<code>skill ${escapar(codigo(h.skill_id))}${nomeItem(h.skill_id) ? " · " + escapar(nomeItem(h.skill_id)) : ""} · nv ${escapar(numero(h.nivel))}${h.pet_id ? " · pet " + escapar(codigo(h.pet_id)) : ""}</code>`).join("")}</div>`)
+    : "") + (pet.acoes && pet.acoes.length ? listaRotulada("Ações", ids(pet.acoes)) : "")));
 
   const tagsSociais = tags(social.tags);
   const tagsBatalha = tags(social.tags_de_batalha);
+  const titulos = social.titulos || {};
 
   blocos.push(secao("05", "Social", grade([
     campo("Assinatura", social.assinatura, { largo: true, vazio: "Sem assinatura" }),
+    campo("Banimento da assinatura até", data(social.banimento_assinatura_ate), { vazio: null }),
     campo("Gênero", social.genero),
     campo("Idioma", social.idioma),
     campo("Dias de jogo", social.dias_de_jogo),
@@ -166,37 +224,87 @@ function montarSecoes(jogador) {
     campo("Modo preferido", social.modo_preferido),
     tagsSociais ? `<div class="campo largo"><span class="campo-rotulo">Tags</span>${tagsSociais}</div>` : "",
     tagsBatalha ? `<div class="campo largo"><span class="campo-rotulo">Tags de batalha</span>${tagsBatalha}</div>` : "",
-  ])));
+    campo("Título de arma", titulos.arma ? JSON.stringify(titulos.arma) : null, { largo: true }),
+    campo("Título de guilda", titulos.guilda ? JSON.stringify(titulos.guilda) : null, { largo: true }),
+  ]) + ((social.contagem_tags || []).length
+    ? listaRotulada("Contagem de tags", `<div class="id-lista">${social.contagem_tags.map((v) => `<code>${escapar(numero(v))}</code>`).join("")}</div>`)
+    : "") + (Object.keys(social.preferencias || {}).length
+    ? listaRotulada("Preferências de perfil", `<div class="id-lista">${Object.entries(social.preferencias)
+        .map(([k, v]) => `<code>${escapar(k)}: ${escapar(Array.isArray(v) ? v.map(codigo).join(", ") : (v === true ? "sim" : v === false ? "não" : codigo(v)))}</code>`).join("")}</div>`)
+    : "")));
 
-  blocos.push(secao("06", "Aparência", grade([
-    campo("Avatar", codigo(aparencia.avatar_id), { num: true }),
-    campo("Banner", codigo(aparencia.banner_id), { num: true }),
-    campo("Título", codigo(aparencia.titulo_id), { num: true }),
+  blocos.push(secao("06", "Aparência e equipamento", grade([
+    campo("Avatar", codigo(aparencia.avatar_id), { num: true, itemId: aparencia.avatar_id }),
+    campo("Cabeça", codigo(aparencia.head_pic), { num: true, itemId: aparencia.head_pic }),
+    campo("Banner", codigo(aparencia.banner_id), { num: true, itemId: aparencia.banner_id }),
+    campo("Título", codigo(aparencia.titulo_id), { num: true, itemId: aparencia.titulo_id }),
     campo("Badge", codigo(aparencia.badge_id), { num: true, miudo: numero(aparencia.badge_qtd) + " badges" }),
-    campo("Pin", codigo(aparencia.pin_id), { num: true }),
+    campo("Pin", codigo(aparencia.pin_id), { num: true, itemId: aparencia.pin_id }),
     campo("Cor de pele", codigo(aparencia.skin_color), { num: true }),
-    campo("Roupas", numero((aparencia.roupas || []).length) + " itens", { num: true }),
-    campo("Habilidades", numero((aparencia.habilidades || []).length) + " itens", { num: true }),
-    campo("Skins de arma", numero((aparencia.skins_de_arma || []).length) + " itens", { num: true }),
-    campo("Conquistas", numero((aparencia.conquistas || []).length) + " equipadas", { num: true }),
-  ])));
+    campo("Perfil selecionado", aparencia.selecionado ? "Sim" : "Não"),
+    campo("Desbloqueio", aparencia.desbloqueio_tipo, { miudo: aparencia.desbloqueio_em ? data(aparencia.desbloqueio_em) : "" }),
+    campo("Favorito", aparencia.marcado_estrela ? "Sim" : "Não"),
+    campo("Arma PVE", codigo(aparencia.arma_pve), { num: true, itemId: aparencia.arma_pve }),
+  ]) +
+    listaRotulada("Roupas equipadas", ids(aparencia.roupas)) +
+    listaRotulada("IDs de habilidades equipadas", ids(aparencia.habilidades)) +
+    listaRotulada("Skins de arma", ids(aparencia.skins_de_arma)) +
+    listaRotulada("Efeitos de alfaiataria", ids(aparencia.efeitos)) +
+    listaRotulada("Slots de itens", ids(aparencia.slots)) +
+    ((aparencia.conquistas || []).length
+      ? listaRotulada("Conquistas equipadas", `<div class="id-lista">${aparencia.conquistas.map((c) =>
+          `<code>id ${escapar(codigo(c.id))} · nv ${escapar(numero(c.nivel))}</code>`).join("")}</div>`)
+      : "") +
+    ((aparencia.destaques || []).length
+      ? listaRotulada("Destaques sociais", `<div class="id-lista">${aparencia.destaques.map((d) =>
+          `<code>${escapar(d.tipo)} · ${escapar(numero(d.valor))}${d.expira_em ? " · até " + escapar(data(d.expira_em)) : ""}</code>`).join("")}</div>`)
+      : "") +
+    ((conta.icone_externo && Object.keys(conta.icone_externo).length)
+      ? listaRotulada("Ícone externo", `<div class="id-lista"><code>${escapar(JSON.stringify(conta.icone_externo))}</code></div>`)
+      : "")));
 
   blocos.push(secao("07", "Honra e gastos", grade([
     campo("Pontuação de honra", numero(honra.pontuacao), { num: true }),
     campo("Partidas na semana", numero(honra.partidas_semana), { num: true }),
     campo("Likes no período", numero(honra.likes_periodo), { num: true }),
     campo("Denúncias no período", numero(honra.denuncias_periodo), { num: true }),
+    campo("Início do período", data(honra.periodo_inicio), { vazio: null }),
+    campo("Fim do período", data(honra.periodo_fim), { vazio: null }),
+    campo("Recompensa", honra.recompensa),
+    campo("Honra inicial", honra.inicial ? "Sim" : "Não"),
     campo("Diamantes gastos", numero(jogador.diamantes_gastos), { num: true }),
   ])));
 
+  const extras = [];
+  if (campeonato.nome || codigo(campeonato.id) !== "0") {
+    extras.push(secao("08", "Time de campeonato", grade([
+      campo("Nome", campeonato.nome, { largo: true }),
+      campo("ID", codigo(campeonato.id), { num: true }),
+      campo("Membros", numero(campeonato.membros), { num: true }),
+    ])));
+  }
+  if (ocupacoes.length) {
+    extras.push(secao("09", "Ocupações", `<div class="lista-passes">${ocupacoes.map((o) => `
+      <div class="passe">
+        <span class="passe-nome">${escapar(o.id)} <small class="passe-meta">temporada ${escapar(numero(o.temporada))} · modo ${escapar(codigo(o.modo))}</small></span>
+        <span class="passe-meta">nv ${escapar(numero(o.nivel))} · ${escapar(numero(o.pontos))} pts · ${escapar(numero(o.proficiencias))} prof.</span>
+      </div>`).join("")}</div>`));
+  }
+  if (noticias.length) {
+    extras.push(secao("10", "Notícias do perfil", `<div class="lista-passes">${noticias.map((n) => `
+      <div class="passe">
+        <span class="passe-nome">${escapar(n.tipo)}${n.conteudo ? ` <small class="passe-meta">${escapar(JSON.stringify(n.conteudo))}</small>` : ""}</span>
+        <span class="passe-meta">${escapar(data(n.atualizado_em) || "—")}</span>
+      </div>`).join("")}</div>`));
+  }
   if (passes.length) {
-    const lista = passes.map((passe) => `
+    extras.push(secao("11", "Histórico de passes", `<div class="lista-passes">${passes.map((passe) => `
       <div class="passe">
         <span class="passe-nome">${escapar(passe.evento)}</span>
-        <span class="passe-meta">nível ${numero(passe.nivel_maximo)}${passe.tem_passe ? " · passe" : ""}</span>
-      </div>`).join("");
-    blocos.push(secao("08", "Histórico de passes", `<div class="lista-passes">${lista}</div>`));
+        <span class="passe-meta">nível ${numero(passe.nivel_maximo)} · badge ${codigo(passe.badge_id)}${passe.tem_passe ? " · passe" : ""}</span>
+      </div>`).join("")}</div>`));
   }
+  blocos.push(...extras);
 
   return blocos.join("");
 }
@@ -233,6 +341,7 @@ function pararCronometro() {
 
 function mostrarDossie(dados) {
   const jogador = dados.jogador || {};
+  NOMES = dados.nomes || {};
   const inicial = (jogador.nome || "?").trim().charAt(0) || "?";
 
   document.getElementById("monograma").textContent = inicial;
@@ -253,7 +362,12 @@ function mostrarDossie(dados) {
   document.getElementById("dossie-consulta").textContent =
     "Consultado em " + horaCompleta(dados.consultado_em) + " · " + segundos + " s";
 
-  secoes.innerHTML = montarSecoes(jogador);
+  secoes.innerHTML = montarSecoes(jogador) + (dados.bruto
+    ? `<details class="dados-brutos">
+        <summary>Ver tudo que o servidor devolveu (JSON completo)</summary>
+        <pre><code>${escapar(JSON.stringify(dados.bruto, null, 2))}</code></pre>
+      </details>`
+    : "");
   dossie.hidden = false;
 }
 

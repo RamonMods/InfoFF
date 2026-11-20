@@ -11,6 +11,8 @@ Digite o UID (5 a 15 dígitos), escolha a região e pronto. Sem login, sem senha
 
 O link fica compartilhável: `/?uid=8684131934&region=BR`.
 
+A ficha traz identificação, ranks BR/CS (incluindo recorde, pico e rank periódico), guilda, pet com habilidades, social (tags, preferências e títulos), aparência com todas as peças equipadas, honra, gastos, campeonato, ocupações, notícias e histórico de passes. Cada ID de item aparece com **nome, tipo e raridade**, resolvidos de uma base local de 15.744 itens. No fim da ficha existe um detalhe "Ver tudo que o servidor devolveu" com o protobuf completo em JSON.
+
 ## API
 
 ```
@@ -73,6 +75,8 @@ Erros vêm com `ok: false`, `codigo` e `erro`:
 | 500 | `interno` | Falha inesperada |
 
 O campo `ranks.br.rank` é o código do rank no servidor (ex.: `301`); use `pontos` e `recorde` para exibir progresso.
+
+O objeto `nomes` traz `{ "idDoItem": { "nome", "tipo", "raridade" } }` para todos os itens presentes na ficha. A base compacta fica em `assets/itens.json` e foi derivada do projeto [fakestarexx/FFItems](https://github.com/fakestarexx/FFItems). O campo `bruto` contém o protobuf completo já em JSON.
 
 ## Rodando local
 

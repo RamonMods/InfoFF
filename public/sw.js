@@ -1,12 +1,12 @@
-/* --- InfoFF: cache do site para abrir rápido e funcionar offline na casca. --- */
+﻿/* --- InfoFF: cache do site para abrir rápido e funcionar offline na casca. --- */
 
-const CACHE = "infoff-v2";
+const CACHE = "infoff-v3";
 
 const CASCA = [
   "./",
   "./index.html",
-  "./site.css?v=1",
-  "./app.js?v=1",
+  "./site.css?v=2",
+  "./app.js?v=2",
   "./manifest.json",
   "./assets/favicon.svg",
   "./assets/icon-192.png",
