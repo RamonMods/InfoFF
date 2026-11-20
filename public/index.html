@@ -1,0 +1,211 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InfoFF — ficha completa de um jogador de Free Fire pelo UID</title>
+<meta name="description" content="Digite o UID e a região e veja a ficha do jogador de Free Fire: nível, experiência, ranks, guilda, pet, social, honra e itens equipados. Sem login e sem senha.">
+<meta name="theme-color" content="#F2EDE3">
+<meta name="color-scheme" content="light">
+<!-- --- onde a API mora; no Render o próprio site responde. --- -->
+<meta name="infoff-api" content="https://infoff.onrender.com">
+<link rel="canonical" href="https://infoff.onrender.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="InfoFF — a ficha completa do jogador">
+<meta property="og:description" content="UID na mão, ficha na tela: nível, ranks, guilda, pet, social e itens equipados.">
+<meta property="og:image" content="https://infoff.onrender.com/assets/infoff-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="InfoFF — a ficha completa do jogador">
+<meta name="twitter:description" content="UID na mão, ficha na tela: nível, ranks, guilda, pet, social e itens equipados.">
+<meta name="twitter:image" content="https://infoff.onrender.com/assets/infoff-preview.png">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+<link rel="stylesheet" href="site.css?v=1">
+</head>
+<body>
+
+<!-- --- cabecalho --- -->
+<header class="topo">
+  <a class="marca" href="./">
+    <span class="marca-selo">IF</span>
+    <span class="marca-nome">INFOFF</span>
+  </a>
+  <nav class="topo-nav">
+    <a href="#ficha">Ficha</a>
+    <a href="#api">API</a>
+    <a href="https://pixgg.com/ramon" target="_blank" rel="noopener">PixGG</a>
+  </nav>
+</header>
+
+<main>
+
+  <!-- --- hero: texto + formulario + carimbo --- -->
+  <section class="hero">
+    <div class="hero-texto">
+      <p class="olho">Arquivo público de jogadores</p>
+      <h1>A ficha completa de<br><em>qualquer</em> jogador.</h1>
+      <p class="linha-fina">
+        Nível, experiência, ranks, guilda, pet, social, honra e o que está equipado.
+        Tudo lido direto do servidor do jogo, a partir do UID.
+      </p>
+
+      <form class="busca" id="form-busca" autocomplete="off">
+        <div class="busca-campos">
+          <label class="campo-busca">
+            <span>UID do jogador</span>
+            <input id="uid" name="uid" inputmode="numeric" pattern="[0-9]*" maxlength="15"
+                   placeholder="8684131934" required>
+          </label>
+          <label class="campo-busca campo-regiao">
+            <span>Região</span>
+            <select id="regiao" name="regiao">
+              <option value="BR" selected>BR — Brasil</option>
+              <option value="US">US — Estados Unidos</option>
+              <option value="IND">IND — Índia</option>
+              <option value="ME">ME — Oriente Médio</option>
+              <option value="ID">ID — Indonésia</option>
+              <option value="TH">TH — Tailândia</option>
+              <option value="VN">VN — Vietnã</option>
+              <option value="SG">SG — Singapura</option>
+              <option value="MY">MY — Malásia</option>
+              <option value="PH">PH — Filipinas</option>
+              <option value="PK">PK — Paquistão</option>
+              <option value="BD">BD — Bangladesh</option>
+              <option value="EU">EU — Europa</option>
+              <option value="RU">RU — Rússia</option>
+              <option value="CIS">CIS — Comunidade CIS</option>
+              <option value="NA">NA — América do Norte</option>
+              <option value="SAC">SAC — América do Sul</option>
+              <option value="AFR">AFR — África</option>
+              <option value="TW">TW — Taiwan</option>
+            </select>
+          </label>
+        </div>
+        <button class="botao" type="submit">
+          <span>Abrir ficha</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <p class="nota">Sem login, sem senha. A consulta é feita na hora, no servidor do jogo.</p>
+      </form>
+    </div>
+
+    <aside class="carimbo" aria-hidden="true">
+      <div class="carimbo-folha">
+        <p class="carimbo-topo">Registro de jogador</p>
+        <div class="carimbo-linha"><span>Nome</span><i></i></div>
+        <div class="carimbo-linha"><span>UID</span><i></i></div>
+        <div class="carimbo-linha"><span>Região</span><i></i></div>
+        <div class="carimbo-linha"><span>Nível</span><i></i></div>
+        <div class="carimbo-linha"><span>Guilda</span><i></i></div>
+        <div class="carimbo-linha"><span>Rank</span><i></i></div>
+        <div class="carimbo-rodape">
+          <span>InfoFF</span>
+          <span>Ficha nº ______</span>
+        </div>
+      </div>
+      <div class="selo">Verificado<br><b>no servidor</b></div>
+    </aside>
+  </section>
+
+  <!-- --- resultado --- -->
+  <section class="resultado" id="ficha" hidden>
+    <div class="resultado-topo">
+      <h2>Ficha do jogador</h2>
+      <p id="resultado-meta" class="resultado-meta"></p>
+    </div>
+
+    <div id="aviso" class="aviso" hidden></div>
+
+    <div id="carregando" class="carregando" hidden>
+      <span class="pulso"></span>
+      <span>Consultando o servidor do jogo<span class="reticencias">…</span></span>
+      <b id="cronometro">0,0 s</b>
+    </div>
+
+    <article id="dossie" class="dossie" hidden>
+      <div class="dossie-faixa">
+        <span id="dossie-registro">Registro nº —</span>
+        <span id="dossie-consulta">—</span>
+      </div>
+
+      <header class="dossie-cabeca">
+        <div class="monograma" id="monograma">?</div>
+        <div class="dossie-identidade">
+          <h3 id="jogador-nome">—</h3>
+          <p class="dossie-sub"><span id="jogador-uid">—</span><span class="ponto">·</span><span id="jogador-regiao">—</span><span class="ponto">·</span><span id="jogador-nivel">—</span></p>
+          <p class="dossie-assinatura" id="jogador-assinatura"></p>
+        </div>
+        <div class="dossie-selo" id="dossie-selo">—</div>
+      </header>
+
+      <div id="secoes" class="secoes"></div>
+    </article>
+  </section>
+
+  <!-- --- api --- -->
+  <section class="api" id="api">
+    <div class="api-texto">
+      <p class="olho">Para quem programa</p>
+      <h2>A mesma ficha, em JSON.</h2>
+      <p class="linha-fina">
+        Uma rota, dois parâmetros. Serve para bot de Discord, painel, planilha — o que você quiser montar.
+      </p>
+      <ul class="api-lista">
+        <li><code>uid</code> — de 5 a 15 dígitos</li>
+        <li><code>region</code> — BR, US, IND, ME, ID, TH…</li>
+        <li>Resposta em <code>application/json</code>, CORS liberado</li>
+      </ul>
+    </div>
+    <div class="api-codigo">
+      <div class="api-codigo-topo"><span>GET</span><code>/info?uid=8684131934&amp;region=BR</code></div>
+<pre><code>{
+  "ok": true,
+  "uid": 8684131934,
+  "regiao": "BR",
+  "jogador": {
+    "nome": "DEUS !777",
+    "nivel": 1,
+    "likes": 102,
+    "ranks": { "br": { "pontos": 1000 }, "cs": { "pontos": 0 } },
+    "guilda": { "nome": "Sem guilda" },
+    "pet": { "nome": "Sem pet" },
+    "social": { "assinatura": "Sem assinatura" }
+  },
+  "tempo_ms": 8697
+}</code></pre>
+    </div>
+  </section>
+
+</main>
+
+<footer class="rodape">
+  <div class="rodape-linha">
+    <div class="rodape-marca">
+      <span class="marca-selo">IF</span>
+      <div>
+        <strong>InfoFF</strong>
+        <span>Ficha de jogador por UID</span>
+      </div>
+    </div>
+    <nav class="rodape-links">
+      <a href="https://github.com/RamonMods/InfoFF" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://ramonmods.github.io/" target="_blank" rel="noopener">RamonMods</a>
+      <a href="#api">API</a>
+    </nav>
+  </div>
+  <div class="rodape-pix">
+    <p>Se o InfoFF te ajudou, um café ajuda a manter as contas de consulta no ar.</p>
+    <a class="pix" href="https://pixgg.com/ramon" target="_blank" rel="noopener">pixgg.com/ramon</a>
+  </div>
+  <p class="rodape-nota">
+    Projeto independente, sem vínculo com a Garena. Os dados vêm do servidor público do jogo.
+  </p>
+</footer>
+
+<script src="app.js?v=1"></script>
+</body>
+</html>

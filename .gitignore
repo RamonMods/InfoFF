@@ -1,0 +1,8 @@
+# --- lixo de build e ambiente local --- #
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.DS_Store
+Thumbs.db

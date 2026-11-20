@@ -1,0 +1,19 @@
+# --- InfoFF: site e API no mesmo serviço Flask. --- #
+services:
+  - type: web
+    name: infoff
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r api/requirements.txt
+    startCommand: gunicorn --chdir api --workers 1 --threads 8 --timeout 120 app:app
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: FF_RELEASE_VERSION
+        value: OB55
+      - key: FF_SESSION_TTL
+        value: "3600"
+      - key: INFOFF_CACHE
+        value: "120"
