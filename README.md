@@ -1,8 +1,8 @@
-# InfoFF
+﻿# InfoFF
 
 Ficha completa de um jogador de Free Fire a partir do UID: nível, experiência, likes, ranks, guilda, pet, social, honra, itens equipados e histórico de passes. Site e API no mesmo serviço.
 
-- Site: https://infoff.onrender.com
+- Site: https://infoff-kl8i.onrender.com
 - Espelho estático (sem busca): https://ramonmods.github.io/InfoFF/
 
 ## Como usar
