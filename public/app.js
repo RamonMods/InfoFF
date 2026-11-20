@@ -32,10 +32,9 @@ function nomeItem(id) {
 
 /* --- endereço da API: no Render é o próprio site; no Pages vem do meta. --- */
 const metaApi = document.querySelector('meta[name="infoff-api"]');
-const servidoPelaApi = /(^|\.)onrender\.com$/.test(location.hostname)
-  || location.hostname === "localhost"
-  || location.hostname === "127.0.0.1";
+const servidoPelaApi = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 const API_BASE = servidoPelaApi ? "" : ((metaApi && metaApi.content) || "").replace(/\/+$/, "");
+const SEM_API = !servidoPelaApi && !API_BASE;
 
 /* --- utilidades de formatação --- */
 
@@ -384,6 +383,12 @@ async function consultar(uid, regiao) {
   metaConsulta.textContent = "UID " + uid + " · " + regiao;
 
   try {
+    if (SEM_API) {
+      mostrarAviso("A API não está hospedada no momento.",
+        "O site está publicado, mas a consulta precisa do serviço da API. Ele pode ser publicado de novo quando necessário.");
+      return;
+    }
+
     const resposta = await fetch(`${API_BASE}/info?uid=${encodeURIComponent(uid)}&region=${encodeURIComponent(regiao)}`, {
       headers: { Accept: "application/json" },
     });
